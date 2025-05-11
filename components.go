@@ -354,6 +354,41 @@ func (s Section) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON is a method for unmarshaling Section from JSON.
+func (s *Section) UnmarshalJSON(data []byte) error {
+	type sectionAlias Section
+	aux := struct {
+		sectionAlias
+		RawComponents []json.RawMessage `json:"components"`
+		RawAccessory  json.RawMessage   `json:"accessory"`
+	}{}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	*s = Section(aux.sectionAlias)
+
+	s.Components = make([]MessageComponent, len(aux.RawComponents))
+	for i, raw := range aux.RawComponents {
+		component, err := MessageComponentFromJSON(raw)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal section component %d: %w", i, err)
+		}
+		s.Components[i] = component
+	}
+
+	if len(aux.RawAccessory) > 0 && string(aux.RawAccessory) != "null" {
+		accessory, err := MessageComponentFromJSON(aux.RawAccessory)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal accessory: %w", err)
+		}
+		s.Accessory = accessory
+	}
+
+	return nil
+}
+
 // TextDisplay is a top-level component that allows you to add markdown-formatted text to the message.
 type TextDisplay struct {
 	Content string `json:"content"`
@@ -497,6 +532,31 @@ func (s Separator) MarshalJSON() ([]byte, error) {
 		separator: separator(s),
 		Type:      s.Type(),
 	})
+}
+
+func (c *Container) UnmarshalJSON(data []byte) error {
+	type containerAlias Container
+	aux := struct {
+		containerAlias
+		RawComponents []json.RawMessage `json:"components"`
+	}{}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	*c = Container(aux.containerAlias)
+
+	c.Components = make([]MessageComponent, len(aux.RawComponents))
+	for i, raw := range aux.RawComponents {
+		component, err := MessageComponentFromJSON(raw)
+		if err != nil {
+			return fmt.Errorf("failed to parse component at index %d: %w", i, err)
+		}
+		c.Components[i] = component
+	}
+
+	return nil
 }
 
 // Container is a top-level layout component.
