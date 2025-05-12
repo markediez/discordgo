@@ -391,6 +391,8 @@ func (s *Section) UnmarshalJSON(data []byte) error {
 
 // TextDisplay is a top-level component that allows you to add markdown-formatted text to the message.
 type TextDisplay struct {
+	// Unique identifier for the component; auto populated through increment if not provided.
+	ID int `json:"id,omitempty"`
 	Content string `json:"content"`
 }
 
